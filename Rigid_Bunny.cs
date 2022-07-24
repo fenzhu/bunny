@@ -7,7 +7,7 @@ public class Rigid_Bunny : MonoBehaviour
     float dt = 0.015f;
     Vector3 v = new Vector3(0, 0, 0);   // velocity
     Vector3 w = new Vector3(0, 0, 0);   // angular velocity
-    
+
 
     float mass;                                 // mass
     Matrix4x4 I_ref;                            // reference inertia
@@ -15,7 +15,7 @@ public class Rigid_Bunny : MonoBehaviour
     float linear_decay = 0.999f;                // for velocity decay
     float angular_decay = 0.98f;
     float restitution = 0.5f;                   // for collision
-        
+
 
     float uT = 0.5f;
 
@@ -109,12 +109,12 @@ public class Rigid_Bunny : MonoBehaviour
             return;
         }
 
-       
+
         xAvg /= num;
         vAvg /= num;
         Vector3 RrAvg = xAvg - transform.position;
 
-     
+
         Vector3 vNAvg = Vector3.Dot(vAvg, N) * N;
         Vector3 vTAvg = vAvg - vNAvg;
 
@@ -137,12 +137,12 @@ public class Rigid_Bunny : MonoBehaviour
         Vector4 j = K.inverse * (new Vector4(vAvgNew.x, vAvgNew.y, vAvgNew.z, 1)
             - new Vector4(vAvg.x, vAvg.y, vAvg.z, 1));
 
-    
+
         impulse = j;
         v = v + impulse * (1 / mass);
         Vector3 tmp = I.inverse * (Vector3.Cross(RrAvg, impulse));
         w = w + tmp;
-        restitution *= restitution;
+        restitution *= 0.1f;
     }
 
 
@@ -187,40 +187,33 @@ public class Rigid_Bunny : MonoBehaviour
         {
             return;
         }
+
         // Part I: Update velocities
-      
-        
-            Vector3 x_0 = transform.position;
-            v = linear_decay * v;
+        v = linear_decay * v;
 
-            //dt:delta t  gravity:F mass:M^-1
-            Vector3 v_mid = v + dt * gravity;// / mass;
-            //x^1 = x^0 +  deltaT * v 当v等于v_0.5时误差为deltaT^3 
-            Vector3 x_1 = x_0 + dt * v_mid;
+        //dt:delta t  gravity:g
+        Vector3 v_mid = v + dt * gravity;
+        //x^1 = x^0 +  deltaT * v 当v等于v_0.5时误差为deltaT^3，也就是这里的v_mid
+        v = v_mid;
 
-            v = v_mid;
-           // transform.position = new Vector3(x_1.x, x_1.y, x_1.z);
 
-            Quaternion rot = transform.rotation;
-           
-           w = angular_decay * w;
-            Quaternion w_rotted = new Quaternion(dt * w.x / 2, dt * w.y / 2, dt * w.z / 2, 0) * rot;
-            transform.rotation = new Quaternion(rot.x + w_rotted.x, rot.y + w_rotted.y, rot.z + w_rotted.z,
-            rot.w + w_rotted.w);
-        
 
         // Part II: Collision Impulse
         Collision_Impulse(new Vector3(0, 0.01f, 0), new Vector3(0, 1, 0));
-       Collision_Impulse(new Vector3(2, 0, 0), new Vector3(-1, 0, 0));
-      
+        Collision_Impulse(new Vector3(2, 0, 0), new Vector3(-1, 0, 0));
+
         // Part III: Update position & orientation
         //Update linear status
         Vector3 x = transform.position + dt * v;
         //Update angular status
-        Quaternion q = transform.rotation;
+        Quaternion rot = transform.rotation;
+        w = angular_decay * w;
+        Quaternion w_rotted = new Quaternion(dt * w.x / 2, dt * w.y / 2, dt * w.z / 2, 0) * rot;
+
 
         // Part IV: Assign to the object
         transform.position = x;
-        transform.rotation = q;
+        transform.rotation = new Quaternion(rot.x + w_rotted.x, rot.y + w_rotted.y, rot.z + w_rotted.z,
+                rot.w + w_rotted.w);
     }
 }
