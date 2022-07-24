@@ -73,28 +73,49 @@ public class Rigid_Bunny : MonoBehaviour
     //position and the velocity all of sudden.
     void Collision_Impulse(Vector3 P, Vector3 N)
     {
-
-        Vector3 xAvg = transform.position;
-
-            System.Func<Vector3, float> penetrate = (xi) =>
+        System.Func<Vector3, float> penetrate = (xi) =>
         {
             return Vector3.Dot(xi - P, N);
         };
-        if (penetrate(xAvg) >= 0)
+
+        Mesh mesh = GetComponent<MeshFilter>().mesh;
+        Vector3[] vertices = mesh.vertices;
+
+        Vector3 avg = Vector3.zero;
+        Matrix4x4 R = Matrix4x4.Rotate(transform.rotation);
+
+        int num = 0;
+        Vector3 xAvg = Vector3.zero;
+        Vector3 vAvg = Vector3.zero;
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            Vector3 Rri = R * vertices[i];
+            Vector3 xi = transform.position + Rri;
+            if (penetrate(xi) >= 0)
+            {
+                continue;
+            }
+            Vector3 vi = v + Vector3.Cross(w, Rri);
+            if (Vector3.Dot(vi, N) >= 0)
+            {
+                continue;
+            }
+            num++;
+            xAvg += xi;
+            vAvg += vi;
+        }
+
+        if (num == 0)
         {
             return;
         }
 
+           // Vector3 xAvg = transform.position;
+        xAvg /= num;
+        vAvg /= num;
         Vector3 RrAvg = xAvg - transform.position;
-        Vector3 vAvg = v + Vector3.Cross(w, RrAvg);
 
-
-        if (Vector3.Dot(vAvg, N) >= 0)
-        {
-            return;
-        }
-
-        
+     
         Vector3 vNAvg = Vector3.Dot(vAvg, N) * N;
         Vector3 vTAvg = vAvg - vNAvg;
 
@@ -106,7 +127,7 @@ public class Rigid_Bunny : MonoBehaviour
         vTAvg = a * vTAvg;
         Vector3 vAvgNew = vNAvg + vTAvg;
 
-        Matrix4x4 R = Matrix4x4.Rotate(transform.rotation);
+
         Matrix4x4 I = R * I_ref * R.transpose;
 
         Matrix4x4 RrMatrix = Get_Cross_Matrix(RrAvg);
@@ -121,6 +142,7 @@ public class Rigid_Bunny : MonoBehaviour
         impulse = j;
         Debug.Log("impulse : " +  impulse.ToString());
         v = v + impulse * (1 / mass);
+        Debug.Log("collisioned v : " + v.ToString());
         Vector3 tmp = I.inverse * (Vector3.Cross(RrAvg, impulse));
         w = w + tmp;
     }
@@ -157,7 +179,7 @@ public class Rigid_Bunny : MonoBehaviour
         }
         if (Input.GetKey("l"))
         {
-            v = new Vector3(0.5f, 0.2f, 0);
+            v = new Vector3(5f, 2f, 0);
             w = new Vector3(0, 0, 1f);
             launched = true;
         }
@@ -169,7 +191,7 @@ public class Rigid_Bunny : MonoBehaviour
             v = linear_decay * v;
 
             //dt:delta t  gravity:F mass:M^-1
-            Vector3 v_mid = v + dt * gravity / mass;
+            Vector3 v_mid = v + dt * gravity;// / mass;
             //x^1 = x^0 +  deltaT * v 当v等于v_0.5时误差为deltaT^3 
             Vector3 x_1 = x_0 + dt * v_mid;
 
@@ -184,11 +206,11 @@ public class Rigid_Bunny : MonoBehaviour
             rot.w + w_rotted.w);
         }
 
-        Debug.Log("pos : " + transform.position.ToString());
+        //Debug.Log("pos : " + transform.position.ToString());
         // Part II: Collision Impulse
-       Collision_Impulse(new Vector3(0, 0.01f, 0), new Vector3(0, 1, 0));
-        Collision_Impulse(new Vector3(2, 0, 0), new Vector3(-1, 0, 0));
-        Debug.Log("after collision pos : " + transform.position.ToString());
+        Collision_Impulse(new Vector3(0, 0.01f, 0), new Vector3(0, 1, 0));
+       Collision_Impulse(new Vector3(2, 0, 0), new Vector3(-1, 0, 0));
+        //Debug.Log("after collision pos : " + transform.position.ToString());
         // Part III: Update position & orientation
         //Update linear status
         Vector3 x = transform.position;
