@@ -18,7 +18,6 @@ public class Rigid_Bunny : MonoBehaviour
         
 
     float uT = 0.5f;
-    float uN = 0.5f;
 
     Vector3 gravity = new Vector3(0, -9.8f, 0);
     Vector3 impulse = Vector3.zero;
@@ -110,7 +109,7 @@ public class Rigid_Bunny : MonoBehaviour
             return;
         }
 
-           // Vector3 xAvg = transform.position;
+       
         xAvg /= num;
         vAvg /= num;
         Vector3 RrAvg = xAvg - transform.position;
@@ -119,11 +118,11 @@ public class Rigid_Bunny : MonoBehaviour
         Vector3 vNAvg = Vector3.Dot(vAvg, N) * N;
         Vector3 vTAvg = vAvg - vNAvg;
 
-        float a = Mathf.Max(1 - uT * (1 + uN) * vNAvg.magnitude /
+        float a = Mathf.Max(1 - uT * (1 + restitution) * vNAvg.magnitude /
             vTAvg.magnitude, .0f);
 
         //这里的vNAvg应该和法线同方向
-        vNAvg = -uN * vNAvg;
+        vNAvg = -restitution * vNAvg;
         vTAvg = a * vTAvg;
         Vector3 vAvgNew = vNAvg + vTAvg;
 
@@ -138,13 +137,12 @@ public class Rigid_Bunny : MonoBehaviour
         Vector4 j = K.inverse * (new Vector4(vAvgNew.x, vAvgNew.y, vAvgNew.z, 1)
             - new Vector4(vAvg.x, vAvg.y, vAvg.z, 1));
 
-        //discard w
+    
         impulse = j;
-        Debug.Log("impulse : " +  impulse.ToString());
         v = v + impulse * (1 / mass);
-        Debug.Log("collisioned v : " + v.ToString());
         Vector3 tmp = I.inverse * (Vector3.Cross(RrAvg, impulse));
         w = w + tmp;
+        restitution *= restitution;
     }
 
 
@@ -184,9 +182,14 @@ public class Rigid_Bunny : MonoBehaviour
             launched = true;
         }
 
-        // Part I: Update velocities
-        if (launched == true)
+
+        if (!launched)
         {
+            return;
+        }
+        // Part I: Update velocities
+      
+        
             Vector3 x_0 = transform.position;
             v = linear_decay * v;
 
@@ -196,24 +199,23 @@ public class Rigid_Bunny : MonoBehaviour
             Vector3 x_1 = x_0 + dt * v_mid;
 
             v = v_mid;
-            transform.position = new Vector3(x_1.x, x_1.y, x_1.z);
+           // transform.position = new Vector3(x_1.x, x_1.y, x_1.z);
 
             Quaternion rot = transform.rotation;
-            //暂时关闭了角速度衰减
-            // w = angular_decay * w;
+           
+           w = angular_decay * w;
             Quaternion w_rotted = new Quaternion(dt * w.x / 2, dt * w.y / 2, dt * w.z / 2, 0) * rot;
             transform.rotation = new Quaternion(rot.x + w_rotted.x, rot.y + w_rotted.y, rot.z + w_rotted.z,
             rot.w + w_rotted.w);
-        }
+        
 
-        //Debug.Log("pos : " + transform.position.ToString());
         // Part II: Collision Impulse
         Collision_Impulse(new Vector3(0, 0.01f, 0), new Vector3(0, 1, 0));
        Collision_Impulse(new Vector3(2, 0, 0), new Vector3(-1, 0, 0));
-        //Debug.Log("after collision pos : " + transform.position.ToString());
+      
         // Part III: Update position & orientation
         //Update linear status
-        Vector3 x = transform.position;
+        Vector3 x = transform.position + dt * v;
         //Update angular status
         Quaternion q = transform.rotation;
 
