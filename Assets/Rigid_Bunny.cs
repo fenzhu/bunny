@@ -5,7 +5,11 @@ public class Rigid_Bunny : MonoBehaviour
 {
     bool launched = false;
     float dt = 0.015f;
-    Vector3 v = new Vector3(0, 0, 0);   // velocity
+    /*
+    v(0.5) = v(-0.5) + dt * F / M
+    x(1) = x(0) + dt * v(0.5) error o(dt^3) < o(dt^2) 
+    */
+    Vector3 vMid = new Vector3(0, 0, 0);   // velocity
     Vector3 w = new Vector3(0, 0, 0);   // angular velocity
 
 
@@ -94,7 +98,7 @@ public class Rigid_Bunny : MonoBehaviour
             {
                 continue;
             }
-            Vector3 vi = v + Vector3.Cross(w, Rri);
+            Vector3 vi = vMid + Vector3.Cross(w, Rri);
             if (Vector3.Dot(vi, N) >= 0)
             {
                 continue;
@@ -139,7 +143,7 @@ public class Rigid_Bunny : MonoBehaviour
 
 
         impulse = j;
-        v = v + impulse * (1 / mass);
+        vMid = vMid + impulse * (1 / mass);
         Vector3 tmp = I.inverse * (Vector3.Cross(RrAvg, impulse));
         w = w + tmp;
         restitution *= 0.1f;
@@ -177,7 +181,7 @@ public class Rigid_Bunny : MonoBehaviour
         }
         if (Input.GetKey("l"))
         {
-            v = new Vector3(5f, 2f, 0);
+            vMid = new Vector3(5f, 2f, 0);
             w = new Vector3(0, 0, 1f);
             launched = true;
         }
@@ -189,12 +193,12 @@ public class Rigid_Bunny : MonoBehaviour
         }
 
         // Part I: Update velocities
-        v = linear_decay * v;
+        vMid = linear_decay * vMid;
 
         //dt:delta t  gravity:g
-        Vector3 v_mid = v + dt * gravity;
+        Vector3 v_mid = vMid + dt * gravity;
         //x^1 = x^0 +  deltaT * v 当v等于v_0.5时误差为deltaT^3，也就是这里的v_mid
-        v = v_mid;
+        vMid = v_mid;
 
 
 
@@ -204,7 +208,7 @@ public class Rigid_Bunny : MonoBehaviour
 
         // Part III: Update position & orientation
         //Update linear status
-        Vector3 x = transform.position + dt * v;
+        Vector3 x = transform.position + dt * vMid;
         //Update angular status
         Quaternion rot = transform.rotation;
         w = angular_decay * w;
